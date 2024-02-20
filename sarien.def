@@ -1,0 +1,8 @@
+;-----------------------------------
+; SARIEN.DEF module definition file
+;-----------------------------------
+
+NAME            SARIEN    WINDOWAPI
+
+DESCRIPTION    'Sarien AGI Interpreter.'
+STACKSIZE       256000
