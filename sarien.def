@@ -1,8 +1,8 @@
 ;-----------------------------------
-; SARIEN.DEF module definition file
+; BEZIER.DEF module definition file
 ;-----------------------------------
 
-NAME            SARIEN    WINDOWAPI
+NAME            FASTGPI    WINDOWAPI
 
-DESCRIPTION    'Sarien AGI Interpreter.'
-STACKSIZE       256000
+DESCRIPTION    '@#OS2World:1.01#@##1## 07 May 2023 20:00:00     ARCAOS-507::::::v1.01@@Getting Fast GPI Graphics Demo.'
+STACKSIZE       8192

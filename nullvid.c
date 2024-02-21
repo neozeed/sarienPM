@@ -36,7 +36,9 @@ PBITMAPINFO2 pbmi;
 BYTE RGBmap[32];
 BYTE Bitmap[NUM_MASSES_X*NUM_MASSES_Y];
 POINTL aptl[3] =
-  { {0u, 0u}, {NUM_MASSES_X, NUM_MASSES_Y}, {0u, 0u} };
+//  { {0, NUM_MASSES_Y}, {NUM_MASSES_X, 0u}, {0u, NUM_MASSES_Y} };	null
+//  {  {NUM_MASSES_X, NUM_MASSES_Y}, {0u, 0u}, {NUM_MASSES_X, NUM_MASSES_Y} }; null
+    { {0u, 0u}, {NUM_MASSES_X, NUM_MASSES_Y}, {0u, 0u} };
 
 MRESULT EXPENTRY window_func(HWND, ULONG, MPARAM, MPARAM);
 void Model(ULONG);
@@ -134,10 +136,10 @@ static void pc_put_block (int x1, int y1, int x2, int y2)
   {
     for (x = 0; x < NUM_MASSES_X; x++)
     {
-      disp_val = ((int) screen_buffer[y*NUM_MASSES_X+x] );	//+ 16);
+      disp_val = ((int) screen_buffer[y*NUM_MASSES_X+x]);	//+ 16);
       if (disp_val > 32) disp_val = 32;
       else if (disp_val < 0) disp_val = 0;
-      Bitmap[y*NUM_MASSES_X+x] = RGBmap[disp_val];
+      Bitmap[((NUM_MASSES_Y-y)*(NUM_MASSES_X))-(NUM_MASSES_X-x)] = RGBmap[disp_val];
     }
   }
 
