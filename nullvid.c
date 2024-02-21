@@ -45,6 +45,41 @@ void Model(ULONG);
 void PrepareGraphics(BYTE *);
 void DisplayPlane(float **current);
 
+#define CGA_00 0x000000
+#define CGA_01 0x0000AA
+#define CGA_02 0x00AA00
+#define CGA_03 0x00AAAA
+#define CGA_04 0xAA0000
+#define CGA_05 0xAA00AA
+#define CGA_06 0xAA5500
+#define CGA_07 0xAAAAAA
+#define CGA_08 0x555555
+#define CGA_09 0x5555FF
+#define CGA_10 0x55FF55
+#define CGA_11 0x55FFFF
+#define CGA_12 0xFF5555
+#define CGA_13 0xFF55FF
+#define CGA_14 0xFFFF55
+#define CGA_15 0xFFFFFF
+
+static unsigned char cga_map[16] = {
+	0x00,		/*  0 - black */
+	0x01,		/*  1 - blue */
+	0x01,		/*  2 - green */
+	0x01,		/*  3 - cyan */
+	0x02,		/*  4 - red */
+	0x02,		/*  5 - magenta */
+	0x02,		/*  6 - brown */
+	0x03,		/*  7 - gray */
+	0x00,		/*  8 - dark gray */
+	0x01,		/*  9 - light blue */
+	0x01,		/* 10 - light green */
+	0x01,		/* 11 - light cyan */
+	0x02,		/* 12 - light red */
+	0x02,		/* 13 - light magenta */
+	0x02,		/* 14 - yellow */
+	0x03		/* 15 - white */
+};
 
 //////////////////////////////////////////////////////////////
 
@@ -207,7 +242,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
   if ((hwndFrame = WinCreateStdWindow(HWND_DESKTOP, WS_VISIBLE, &flFlags,
-                                  (PSZ) class, (PSZ) "5-Point Wave Equation",
+                                  (PSZ) class, (PSZ) "Sarien 0.8.0-j2me",
                                   WS_VISIBLE, 0, 0, &hwndClient)) == 0)
   {
     printf("Error doing WinCreateStdWindow()\n");
@@ -238,10 +273,11 @@ int main(int argc, char *argv[])
 MRESULT EXPENTRY
 window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
 {
-  LONG palette[33];
   int i;
   LONG j;
   SIZEL sizl;
+  LONG OS2palette[33];
+
 
   switch(mess)
   {
@@ -274,11 +310,30 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
       for (i = 0; i < 32; i++)
       {
         j = i << 3;
-        palette[i] = (j << 16) | (j << 8) | j;
+        OS2palette[i] = CGA_00;	//(j << 16) | (j << 8) | j;
       }
-      palette[32] = 0x00ffffffL;
+	OS2palette[0]=CGA_00; 
+	OS2palette[1]=CGA_11;
+	OS2palette[2]=CGA_11;
+	OS2palette[3]=CGA_11;
+	OS2palette[4]=CGA_13;
+	OS2palette[5]=CGA_13;
+	OS2palette[6]=CGA_13;
+	OS2palette[7]=CGA_15;
+	OS2palette[8]=CGA_00; 
+	OS2palette[9]=CGA_11;
+	OS2palette[10]=CGA_11;
+	OS2palette[11]=CGA_11;
+	OS2palette[12]=CGA_13;
+	OS2palette[13]=CGA_13;
+	OS2palette[14]=CGA_13;
+	OS2palette[15]=CGA_15;
+
+//        OS2palette[32] = 0x00ffffffL;
+
+
       GpiCreateLogColorTable(hpsMemory, (ULONG) LCOL_PURECOLOR,
-		(LONG) LCOLF_CONSECRGB, (LONG) 0L, (LONG) 33L, (PLONG) palette);
+		(LONG) LCOLF_CONSECRGB, (LONG) 0L, (LONG) 33L, (PLONG) OS2palette);
       GpiSetBackMix(hpsMemory, BM_OVERPAINT);
 
       /* Create a semaphore to control access to the memory image
@@ -377,8 +432,6 @@ PrepareGraphics(BYTE *RGBmap)
     RGBmap[x] = Bitmap[x];
   }
 }
-
-
 
 
 	
