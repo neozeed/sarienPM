@@ -73,7 +73,25 @@ char* file_name (char *fname)
 
 	return strdup (fdata.name);
 #else
-	return strdup(fname);
+   HDIR        hDir = 1;
+   ULONG ulFiles;
+   USHORT attr;
+   FILEFINDBUF2 ffb;
+   char fnamebuf[15];
+   char *p;
+
+attr=FILE_ALL;
+   DosFindFirst(fname, (PHDIR)&hDir,attr,\
+         (PFILEFINDBUF2)&ffb, sizeof(FILEFINDBUF2),&ulFiles, FIL_STANDARD);
+   if(ulFiles)
+   {
+p=ffb.achName;p+=2;
+sprintf(fnamebuf,p);
+   }
+else
+   memset(fnamebuf,0x0,sizeof(fnamebuf));
+
+	return strdup(fnamebuf);
 #endif
 }
 

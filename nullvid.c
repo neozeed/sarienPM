@@ -89,7 +89,7 @@ static unsigned char cga_map[16] = {
 	0x03		/* 15 - white */
 };
 
-static unsigned char key_from;
+static unsigned int key_from;
 static int pm_keypress;
 
 #define KEY_ENTER	0x0D
@@ -97,6 +97,10 @@ static int pm_keypress;
 #define	KEY_DOWN	0x5000
 #define KEY_LEFT	0x4B00
 #define KEY_RIGHT	0x4D00
+#define KEY_BACKSPACE	0x08
+#define	KEY_ESCAPE	0x1B
+#define KEY_ENTER	0x0D
+
 
 //////////////////////////////////////////////////////////////
 
@@ -406,8 +410,10 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
       if (SHORT1FROMMP(parm1) & KC_KEYUP)
         break;
 pm_keypress=1;
-      switch (SHORT1FROMMP(parm1))
+
+      switch (SHORT2FROMMP(parm2))
       {
+
       	case VK_LEFT:
 	key_from=KEY_LEFT;
 	break;
@@ -420,11 +426,14 @@ pm_keypress=1;
 	case VK_DOWN:
 	key_from=KEY_DOWN;
 	break;
+	case VK_ESC:
+	key_from=KEY_ESCAPE;
+	break;
 
-	case KC_VIRTUALKEY:
 	default:
 	key_from=SHORT1FROMMP(parm2);
 	break;
+
       }
 
 #if 0
