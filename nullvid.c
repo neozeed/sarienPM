@@ -89,6 +89,15 @@ static unsigned char cga_map[16] = {
 	0x03		/* 15 - white */
 };
 
+static unsigned char key_from;
+static int pm_keypress;
+
+#define KEY_ENTER	0x0D
+#define KEY_UP		0x4800
+#define	KEY_DOWN	0x5000
+#define KEY_LEFT	0x4B00
+#define KEY_RIGHT	0x4D00
+
 //////////////////////////////////////////////////////////////
 
 #include "sarien.h"
@@ -157,6 +166,7 @@ static int pc_init_vidmode ()
 
 	clock_count = 0;
 	clock_ticks = 0;
+	pm_keypress = 0;
 
 	screen_buffer = calloc (GFX_WIDTH, GFX_HEIGHT);
 
@@ -180,12 +190,12 @@ static void pc_put_block (int x1, int y1, int x2, int y2)
 
   for (y = 0; y < NUM_MASSES_Y; y++)
   {
-    for (x = 0; x < NUM_MASSES_X; x++)
+    for (x = 0; x < GFX_WIDTH; x++)
     {
-      disp_val = ((int) screen_buffer[y*NUM_MASSES_X+x]);	//+ 16);
+      disp_val = ((int) screen_buffer[y*GFX_WIDTH+x]);	//+ 16);
       if (disp_val > 32) disp_val = 32;
       else if (disp_val < 0) disp_val = 0;
-      Bitmap[((NUM_MASSES_Y-y)*(NUM_MASSES_X))-(NUM_MASSES_X-x)] = RGBmap[disp_val];
+      Bitmap[((NUM_MASSES_Y-y)*(GFX_WIDTH))-(GFX_WIDTH-x)] = RGBmap[disp_val];
     }
   }
 
@@ -210,16 +220,20 @@ static void pc_put_pixels(int x, int y, int w, UINT8 *p)
 
 static int pc_keypress ()
 {
+return (pm_keypress);
 }
 
 
 static int pc_get_key ()
 {
-	UINT16 key;
-
-	key=0;
-	return key;
+if(pm_keypress) {
+	pm_keypress = 0;
+	return key_from;
+	}
+else
+return 0;
 }
+
 
 int OLDmain (int argc, char *argv[]);
 //////////////////////////////////////////////////////////////
@@ -263,7 +277,7 @@ int main(int argc, char *argv[])
                   (SHORT) (60),
                   (SHORT) (WinQuerySysValue(HWND_DESKTOP,
 				            SV_CYSCREEN) - (NUM_MASSES_Y+60)),
-                  (SHORT) NUM_MASSES_X,
+                  (SHORT) GFX_WIDTH,
 		  (SHORT) NUM_MASSES_Y + WinQuerySysValue(HWND_DESKTOP,
 			SV_CYTITLEBAR) - 2, SWP_SIZE | SWP_MOVE);
 
@@ -391,6 +405,31 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
     case WM_CHAR:
       if (SHORT1FROMMP(parm1) & KC_KEYUP)
         break;
+pm_keypress=1;
+      switch (SHORT1FROMMP(parm1))
+      {
+      	case VK_LEFT:
+	key_from=KEY_LEFT;
+	break;
+	case VK_RIGHT:
+	key_from=KEY_RIGHT;
+	break;
+	case VK_UP:
+	key_from=KEY_UP;
+	break;
+	case VK_DOWN:
+	key_from=KEY_DOWN;
+	break;
+
+	case KC_VIRTUALKEY:
+	default:
+	key_from=SHORT1FROMMP(parm2);
+	break;
+      }
+
+#if 0
+      if (SHORT1FROMMP(parm1) & KC_KEYUP)
+        break;
       if (SHORT2FROMMP(parm2) == VK_PAUSE)
       {
         if (ModelSuspended == TRUE)
@@ -402,6 +441,7 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
           ModelSuspended = TRUE;
         }
       }
+#endif
       break;
     default:
       return WinDefWindowProc(handle, mess, parm1, parm2);
