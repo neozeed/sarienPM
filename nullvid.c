@@ -11,6 +11,10 @@
 #define INCL_DOS
 #define INCL_WIN
 #define INCL_GPI
+#define INCL_WINHEAP
+#define INCL_WINDIALOGS
+#define INCL_GPIPRIMITIVES
+#define INCL_DOSPROCESS
 
 #include <os2.h>
 #include <stdio.h>
@@ -27,7 +31,13 @@ HWND hwndFrame, hwndClient;
 HDC hdc, hdcMemory;
 HPS hps, hpsMemory;
 HMTX hmtxLock;
-TID tidModel,tidTimer;
+TID tidMain;
+TID tidTimer;
+//BYTE   tidMainThreadStackArea[8192];
+//BYTE   tidTimerThreadStackArea[8192];
+
+#define STACK            8192    /* Stack size for thread        */
+
 BOOL ModelSuspended = FALSE;
 HBITMAP hbm;
 BITMAPINFOHEADER2 bmih;
@@ -111,9 +121,9 @@ static struct gfx_driver gfx_pcvga = {
 	pc_get_key
 };
 
-static void Timer(){
-for(;;){
-	DosSleep(20);
+void Timer(){
+for(;;)   {
+	DosSleep(20L);
 	clock_ticks++;
 	}
 }
@@ -130,7 +140,7 @@ static void pc_timer ()
 int init_machine ()	//(int argc, char **argv)
 {
 	gfx = &gfx_pcvga;
-opt.cgaemu = TRUE;
+	opt.cgaemu = TRUE;
 	return err_OK;
 }
 
@@ -149,7 +159,7 @@ static int pc_init_vidmode ()
 	clock_ticks = 0;
 
 	screen_buffer = calloc (GFX_WIDTH, GFX_HEIGHT);
-	opt.cgaemu = TRUE;
+
 	return err_OK;
 }
 
@@ -266,9 +276,8 @@ int main(int argc, char *argv[])
       DosCreateMutexSem("\\sem32\\Lock", &hmtxLock, 0, FALSE);
 
       /* Create a thread to run the system model. */
-      DosCreateThread(&tidModel,OLDmain, 0UL, 0UL, 4096);
-      DosCreateThread(&tidTimer,Timer, 0UL, 0UL, 4096);
-
+	DosCreateThread(&tidMain,OLDmain, 0UL, 0UL, STACK);
+	DosCreateThread(&tidTimer,Timer, 0UL, 0UL, STACK);
 
 
   while (WinGetMsg(hab, &qmsg, (HWND) NULL, 0, 0))
@@ -318,12 +327,12 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
       hbm = GpiCreateBitmap(hpsMemory, &bmih, 0L, NULL, NULL);
       GpiSetBitmap(hpsMemory, hbm);
 
-      /* Set up gray-scale palette for screen image. 
+      /* Set up gray-scale palette for screen image. */
       for (i = 0; i < 32; i++)
       {
         j = i << 3;
-        OS2palette[i] = CGA_11;	//(j << 16) | (j << 8) | j;
-      }*/
+        OS2palette[i] = CGA_00;	//(j << 16) | (j << 8) | j;
+      }
 	OS2palette[0]=CGA_00; 
 	OS2palette[1]=CGA_11;
 	OS2palette[2]=CGA_11;
@@ -341,22 +350,22 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
 	OS2palette[14]=CGA_13;
 	OS2palette[15]=CGA_15;
 
-	OS2palette[16]=CGA_00; 
-	OS2palette[17]=CGA_11;
-	OS2palette[18]=CGA_11;
-	OS2palette[19]=CGA_11;
-	OS2palette[20]=CGA_13;
-	OS2palette[21]=CGA_13;
-	OS2palette[22]=CGA_13;
-	OS2palette[23]=CGA_15;
-	OS2palette[24]=CGA_00; 
-	OS2palette[25]=CGA_11;
-	OS2palette[26]=CGA_11;
-	OS2palette[27]=CGA_11;
-	OS2palette[28]=CGA_13;
-	OS2palette[29]=CGA_13;
-	OS2palette[30]=CGA_13;
-	OS2palette[31]=CGA_15;
+        OS2palette[16]=CGA_00;
+        OS2palette[17]=CGA_11;
+        OS2palette[18]=CGA_11;
+        OS2palette[19]=CGA_11;
+        OS2palette[20]=CGA_13;
+        OS2palette[21]=CGA_13;
+        OS2palette[22]=CGA_13;
+        OS2palette[23]=CGA_15;
+        OS2palette[24]=CGA_00;
+        OS2palette[25]=CGA_11;
+        OS2palette[26]=CGA_11;
+        OS2palette[27]=CGA_11;
+        OS2palette[28]=CGA_13;
+        OS2palette[29]=CGA_13;
+        OS2palette[30]=CGA_13;
+        OS2palette[31]=CGA_15;
 
         OS2palette[32] = 0x00ffffffL;
 
