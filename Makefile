@@ -16,11 +16,11 @@
 
 # Version 6.00.077	1991
 # https://archive.org/details/windows-nt-3.1-build-196
-#PLATFORM = nt-sep
+# PLATFORM = nt-sep
 
 # Version 6.00.080	1991
 # https://archive.org/details/windows-nt-3.1-october-1991-build
-#PLATFORM = nt-oct
+# PLATFORM = nt-oct
 
 # Version 6.00.081	1991
 # https://archive.org/details/Windows_NT_and_Win32_Dev_Kit_1991
@@ -37,9 +37,10 @@ PLATFORM = nt-dec
 # PLATFORM = v13
 # PLATFORM = 13.10.6030
 
-INC = /u /w  -D__32BIT__ -DM_I386 -D _MSC_VER -Iinclude 
+INC = /u /w  -D__32BIT__ -DM_I386 -D_MSC_VER=6 -Iinclude 
 #-DKEYS_WORK
-OPT = /G3 /O
+OPT = /G3 /Ogilt #e breaks
+#OPT = /G3 /Od
 DEBUG = #/Zi
 LDEBUG = #-debug:full
 

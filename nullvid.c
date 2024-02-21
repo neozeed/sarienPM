@@ -27,7 +27,7 @@ HWND hwndFrame, hwndClient;
 HDC hdc, hdcMemory;
 HPS hps, hpsMemory;
 HMTX hmtxLock;
-TID tidModel;
+TID tidModel,tidTimer;
 BOOL ModelSuspended = FALSE;
 HBITMAP hbm;
 BITMAPINFOHEADER2 bmih;
@@ -36,8 +36,6 @@ PBITMAPINFO2 pbmi;
 BYTE RGBmap[32];
 BYTE Bitmap[NUM_MASSES_X*NUM_MASSES_Y];
 POINTL aptl[3] =
-//  { {0, NUM_MASSES_Y}, {NUM_MASSES_X, 0u}, {0u, NUM_MASSES_Y} };	null
-//  {  {NUM_MASSES_X, NUM_MASSES_Y}, {0u, 0u}, {NUM_MASSES_X, NUM_MASSES_Y} }; null
     { {0u, 0u}, {NUM_MASSES_X, NUM_MASSES_Y}, {0u, 0u} };
 
 MRESULT EXPENTRY window_func(HWND, ULONG, MPARAM, MPARAM);
@@ -113,16 +111,19 @@ static struct gfx_driver gfx_pcvga = {
 	pc_get_key
 };
 
+static void Timer(){
+for(;;){
+	DosSleep(20);
+	clock_ticks++;
+	}
+}
+
 static void pc_timer ()
 {
-#if 0
 	static UINT32 cticks = 0;
 
 	while (cticks == clock_ticks);
 	cticks = clock_ticks;
-#else
-clock_ticks++;
-#endif
 }
 
 
@@ -148,7 +149,7 @@ static int pc_init_vidmode ()
 	clock_ticks = 0;
 
 	screen_buffer = calloc (GFX_WIDTH, GFX_HEIGHT);
-
+	opt.cgaemu = TRUE;
 	return err_OK;
 }
 
@@ -259,6 +260,17 @@ int main(int argc, char *argv[])
   /* Work out mapping from bitmap color table to our logical palette. */
   PrepareGraphics(RGBmap);
 
+      /* Create a semaphore to control access to the memory image
+         presentation space. Only one thread can perform Gpi operations
+         on it at a time. */
+      DosCreateMutexSem("\\sem32\\Lock", &hmtxLock, 0, FALSE);
+
+      /* Create a thread to run the system model. */
+      DosCreateThread(&tidModel,OLDmain, 0UL, 0UL, 4096);
+      DosCreateThread(&tidTimer,Timer, 0UL, 0UL, 4096);
+
+
+
   while (WinGetMsg(hab, &qmsg, (HWND) NULL, 0, 0))
   {
     WinDispatchMsg(hab, &qmsg);
@@ -306,12 +318,12 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
       hbm = GpiCreateBitmap(hpsMemory, &bmih, 0L, NULL, NULL);
       GpiSetBitmap(hpsMemory, hbm);
 
-      /* Set up gray-scale palette for screen image. */
+      /* Set up gray-scale palette for screen image. 
       for (i = 0; i < 32; i++)
       {
         j = i << 3;
-        OS2palette[i] = CGA_00;	//(j << 16) | (j << 8) | j;
-      }
+        OS2palette[i] = CGA_11;	//(j << 16) | (j << 8) | j;
+      }*/
 	OS2palette[0]=CGA_00; 
 	OS2palette[1]=CGA_11;
 	OS2palette[2]=CGA_11;
@@ -329,21 +341,29 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
 	OS2palette[14]=CGA_13;
 	OS2palette[15]=CGA_15;
 
-//        OS2palette[32] = 0x00ffffffL;
+	OS2palette[16]=CGA_00; 
+	OS2palette[17]=CGA_11;
+	OS2palette[18]=CGA_11;
+	OS2palette[19]=CGA_11;
+	OS2palette[20]=CGA_13;
+	OS2palette[21]=CGA_13;
+	OS2palette[22]=CGA_13;
+	OS2palette[23]=CGA_15;
+	OS2palette[24]=CGA_00; 
+	OS2palette[25]=CGA_11;
+	OS2palette[26]=CGA_11;
+	OS2palette[27]=CGA_11;
+	OS2palette[28]=CGA_13;
+	OS2palette[29]=CGA_13;
+	OS2palette[30]=CGA_13;
+	OS2palette[31]=CGA_15;
+
+        OS2palette[32] = 0x00ffffffL;
 
 
       GpiCreateLogColorTable(hpsMemory, (ULONG) LCOL_PURECOLOR,
 		(LONG) LCOLF_CONSECRGB, (LONG) 0L, (LONG) 33L, (PLONG) OS2palette);
       GpiSetBackMix(hpsMemory, BM_OVERPAINT);
-
-      /* Create a semaphore to control access to the memory image
-         presentation space. Only one thread can perform Gpi operations
-         on it at a time. */
-      DosCreateMutexSem("\\sem32\\Lock", &hmtxLock, 0, FALSE);
-
-      /* Create a thread to run the system model. */
-//      DosCreateThread(&tidModel, Model, 0UL, 0UL, 4096);
-DosCreateThread(&tidModel,OLDmain, 0UL, 0UL, 4096);
 
       /* Take the input focus. */
       WinFocusChange(HWND_DESKTOP, handle, 0L);
