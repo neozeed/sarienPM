@@ -202,7 +202,6 @@ static void pc_put_block (int x1, int y1, int x2, int y2)
       Bitmap[((NUM_MASSES_Y-y)*(GFX_WIDTH))-(GFX_WIDTH-x)] = RGBmap[disp_val];
     }
   }
-
   DosRequestMutexSem(hmtxLock, SEM_INDEFINITE_WAIT);
 
   /* This is the key to the speed. Instead of doing a GPI call to set the

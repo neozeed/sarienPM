@@ -16,9 +16,9 @@
 #include "rand.h"
 #include "savegame.h"
 
-#define next_byte data[foffs++]
+#define next_byte Pdata[foffs++]
 
-static UINT8	*data;
+static UINT8	*Pdata;
 static UINT32	flen;
 static UINT32	foffs;
 
@@ -717,7 +717,7 @@ UINT8* convert_v3_pic (UINT8 *data, UINT32 len)
 	xdata = malloc (len + len / 2);
 
 	out = xdata;
-	in = data;
+	in = Pdata;
 
 	for (i = ulen = 0; i < len; i++, ulen++) {
 		d = *in++;
@@ -745,7 +745,7 @@ UINT8* convert_v3_pic (UINT8 *data, UINT32 len)
 		old = d;
 	}
 
-	free (data);
+	free (Pdata);
 	xdata = realloc (xdata, ulen);
 
 	return xdata;
@@ -770,7 +770,7 @@ int decode_picture (int n, int clear)
 	scr_colour = 0xF;
 	pri_colour = 0x4;
 
-	data = game.pictures[n].rdata;
+	Pdata = game.pictures[n].rdata;
 	flen = game.dir_pic[n].len;
 	foffs = 0;
 
