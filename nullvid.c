@@ -33,8 +33,6 @@ HPS hps, hpsMemory;
 HMTX hmtxLock;
 TID tidMain;
 TID tidTimer;
-//BYTE   tidMainThreadStackArea[8192];
-//BYTE   tidTimerThreadStackArea[8192];
 
 #define STACK            8192    /* Stack size for thread        */
 
@@ -92,6 +90,9 @@ static unsigned char cga_map[16] = {
 static unsigned int key_from;
 static int pm_keypress;
 
+static int draw_frame;
+static int draw_frame_skip;
+
 #define KEY_ENTER	0x0D
 #define KEY_UP		0x4800
 #define	KEY_DOWN	0x5000
@@ -145,8 +146,9 @@ static void pc_timer ()
 {
 	static UINT32 cticks = 0;
 
-	while (cticks == clock_ticks);
+	while (cticks == clock_ticks){DosSleep(5);}
 	cticks = clock_ticks;
+	draw_frame++;
 }
 
 
@@ -296,7 +298,10 @@ int main(int argc, char *argv[])
 	DosCreateThread(&tidMain,OLDmain, 0UL, 0UL, STACK);
 	DosCreateThread(&tidTimer,Timer, 0UL, 0UL, STACK);
 
-
+	draw_frame=1000;
+	draw_frame_skip=60;
+	if(argc>1)
+		draw_frame_skip=atoi(argv[1]);
   while (WinGetMsg(hab, &qmsg, (HWND) NULL, 0, 0))
   {
     WinDispatchMsg(hab, &qmsg);
@@ -398,11 +403,14 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
     case WM_ERASEBACKGROUND:
     case WM_PAINT:
       /* Copy the memory image of the screen out to the real screen. */
-      DosRequestMutexSem(hmtxLock, SEM_INDEFINITE_WAIT);
-      WinBeginPaint(handle, hps, NULL);
-      GpiBitBlt(hps, hpsMemory, 3L, aptl, ROP_SRCCOPY, BBO_AND);
-      WinEndPaint(hps);
-      DosReleaseMutexSem(hmtxLock);
+      if(draw_frame>draw_frame_skip) {
+         DosRequestMutexSem(hmtxLock, SEM_INDEFINITE_WAIT);
+         WinBeginPaint(handle, hps, NULL);
+         GpiBitBlt(hps, hpsMemory, 3L, aptl, ROP_SRCCOPY, BBO_AND);
+         WinEndPaint(hps);
+         DosReleaseMutexSem(hmtxLock);
+	 draw_frame=1;
+         }
       break;
 
     case WM_CHAR:
@@ -434,22 +442,6 @@ pm_keypress=1;
 	break;
 
       }
-
-#if 0
-      if (SHORT1FROMMP(parm1) & KC_KEYUP)
-        break;
-      if (SHORT2FROMMP(parm2) == VK_PAUSE)
-      {
-        if (ModelSuspended == TRUE)
-        {
-          ModelSuspended = FALSE;
-        }
-        else
-        {
-          ModelSuspended = TRUE;
-        }
-      }
-#endif
       break;
     default:
       return WinDefWindowProc(handle, mess, parm1, parm2);

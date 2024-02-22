@@ -76,7 +76,7 @@ extern char **cibyl_read_cibar_directory(char *base_dir);
 #endif
 
 #ifdef _MSC_VER
-#define USE_CONSOLE
+#  undef USE_CONSOLE
 #  undef USE_PCM_SOUND
 #  undef USE_HIRES
 #  undef USE_COMMAND_LINE

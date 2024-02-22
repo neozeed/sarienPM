@@ -37,8 +37,8 @@ PLATFORM = nt-dec
 # PLATFORM = v13
 # PLATFORM = 13.10.6030
 
-INC = /u /w  -D__32BIT__ -DM_I386 -D _MSC_VER=6 -Iinclude 
-#-DKEYS_WORK
+DEFS =  -D__32BIT__ -DM_I386 -D _MSC_VER=6 -DKEYS_WORK
+INC = /u /w -Iinclude $(DEFS)
 # OPT = /G3 /O
 OPT = /G3 /Ogilt /Gs
 DEBUG = #/Zi
