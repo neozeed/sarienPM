@@ -41,7 +41,7 @@ int file_exists (char *fname)
 rc=1;
 if(ulFiles>0)
 	rc=0;
-return(rc);
+return(!rc);
 //	return !_dos_findfirst (fname, _A_NORMAL | _A_ARCH | _A_RDONLY, &fdata);
 }
 
