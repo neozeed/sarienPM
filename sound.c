@@ -412,34 +412,14 @@ static void stop_note (int i)
 
 static void play_note (int i, int freq, int len, int vol)
 {
-	if (!getflag (F_sound_on))
-		vol = 0;
-	else if (vol && opt.soundemu == SOUND_EMU_PC)
-		vol = 160;
-
-#ifdef USE_PCM_SOUND
-	chn[i].phase = 0;
-#endif
-
+if(i==0)
+	SendBeep(freq,len);
+/*
 	chn[i].freq = freq;
 	chn[i].vol = vol; 
 	chn[i].env = 0x10000;
 	chn[i].adsr = AGI_SOUND_ENV_ATTACK;
-
-#ifdef CIBYL
-    if (i == 0) {
-	    int exc = 0;
-	    int note = freq_to_note(freq);
-
-	    NOPH_try(NOPH_setter_exception_handler, (void*)&exc) {
-		    NOPH_Manager_playTone(note, len + 1, (vol * 100) / 255);
-	    } NOPH_catch();
-	    if (exc) {
-		    printf("playTone threw an exception: note %d, len %d, vol %d\n",
-			   note, len, (vol * 100) / 255);
-	    }
-      }
-#endif
+*/
 }
 
 
@@ -548,7 +528,8 @@ void play_agi_sound ()
 {
 	int i, freq;
 
-	for (playing = i = 0; i < (opt.soundemu == SOUND_EMU_PC ? 1 : 4); i++) {
+//	for (playing = i = 0; i < (opt.soundemu == SOUND_EMU_PC ? 1 : 4); i++) {
+	for (playing = i = 0; i < 4; i++) {
 		playing |= !chn[i].end;
 
 		if (chn[i].end)
@@ -591,14 +572,6 @@ void play_sound ()
 	if (endflag == -1)
 		return;
 
-#ifdef USE_IIGS_SOUND
-	if (chn[0].type == AGI_SOUND_MIDI) {
-		/* play_midi_sound (); */
-		playing = 0;
-	} else if (chn[0].type == AGI_SOUND_SAMPLE) {
-		play_sample_sound ();
-	} else
-#endif
 		play_agi_sound ();
 
 	if (!playing) {
@@ -615,190 +588,4 @@ void play_sound ()
 }
 
 
-#ifdef USE_PCM_SOUND
-
-UINT32 mix_sound (void)
-{
-	register int i, p;
-	SINT16 *src;
-	int c, b, m;
-
-	memset (snd_buffer, 0, BUFFER_SIZE << 1);
-
-	for (c = 0; c < NUM_CHANNELS; c++) {
-		if (!chn[c].vol)
-			continue;
-
-		m = chn[c].flags & AGI_SOUND_ENVELOPE ?
-			chn[c].vol * chn[c].env >> 16 :
-			chn[c].vol;
-	
-		if (chn[c].type != AGI_SOUND_4CHN || c != 3) {
-			src = chn[c].ins;
-	
-			p = chn[c].phase;
-			for (i = 0; i < BUFFER_SIZE; i++) {
-				b = src[p >> 8];
-#ifdef USE_INTERPOLATION
-				b += ((src[((p >> 8) + 1) % chn[c].size] -
-					src[p >> 8]) * (p & 0xff)) >> 8;
-#endif
-				snd_buffer[i] += (b * m) >> 4;
-	
-				p += (UINT32)118600 * 4 / chn[c].freq;
-	
-				/* FIXME */
-				if (chn[c].flags & AGI_SOUND_LOOP) {
-					p %= chn[c].size << 8;
-				} else {
-					if (p >= chn[c].size << 8) {
-						p = chn[c].vol = 0;
-						chn[c].end = 1;
-						break;
-					}
-				}
-	
-			}
-			chn[c].phase = p;
-		} else {
-			/* Add white noise */
-			for (i = 0; i < BUFFER_SIZE; i++) {
-				b = rnd(256) - 128;
-				snd_buffer[i] += (b * m) >> 4;
-			}
-		}
-
-		switch (chn[c].adsr) {
-		case AGI_SOUND_ENV_ATTACK:
-			/* not implemented */
-			chn[c].adsr = AGI_SOUND_ENV_DECAY;
-			break;
-		case AGI_SOUND_ENV_DECAY:
-			if (chn[c].env > chn[c].vol * ENV_SUSTAIN + ENV_DECAY) {
-				chn[c].env -= ENV_DECAY;
-			} else {
-				chn[c].env = chn[c].vol * ENV_SUSTAIN;
-				chn[c].adsr = AGI_SOUND_ENV_SUSTAIN;
-			}
-			break;
-		case AGI_SOUND_ENV_SUSTAIN:
-			break;
-		case AGI_SOUND_ENV_RELEASE:
-			if (chn[c].env >= ENV_RELEASE) {
-				chn[c].env -= ENV_RELEASE;
-			} else {
-				chn[c].env = 0;
-			}
-		}
-	}
-
-	return BUFFER_SIZE;
-}
-
-
-#ifdef USE_IIGS_SOUND
-
-#if 0
-int load_instruments (char *fname)
-{
-	FILE *fp;
-	int i, j, k;
-	struct sound_instrument ai;
-	int num_wav;
-	char *path;
-
-	path = fixpath (NO_GAMEDIR, "sierrast");
-
-	if ((fp = fopen (path, "rb")) == NULL)
-		return err_BadFileOpen;
-	report ("Loading samples: %s\n", path);
-
-	if ((wave = malloc (0x10000 * 2)) == NULL)
-		return err_NotEnoughMemory;
-
-	fread (wave, 0x10000, 1, fp);
-	fclose (fp);
-	for (i = 0x10000; i--; ) {
-		((SINT16 *)wave)[i] = 2 * ((SINT16)wave[i] - 128);
-	}
-
-fp = fopen ("bla", "w");
-fwrite (wave, 2, 0x10000, fp);
-fclose (fp);
-
-	fixpath (NO_GAMEDIR, fname);
-	report ("Loading instruments: %s\n", path);
-
-	if ((fp = fopen (path, "rb")) == NULL)
-		return err_BadFileOpen;
-
-	fseek (fp, 0x8469, SEEK_SET);
-
-for (num_wav = j = 0; j < 40; j++) {
-	fread (&ai, 1, 32, fp);
-
-	if (ai.env[0].bp > 0x7f)
-		break;
-
-#if 0
-	printf ("Instrument %d loaded ----------------\n", j);
-	printf ("Envelope:\n");
-	for (i = 0; i < 8; i++)
-		printf ("[seg %d]: BP %02x Inc %04x\n",
-			i, ai.env[i].bp, ((int)ai.env[i].inc_hi << 8) |
-			ai.env[i].inc_lo);
-	printf ("rel seg: %d, pri inc: %d, bend range: %d, vib dep: %d, "
-		"vib spd: %d\n", ai.relseg, ai.priority, ai.bendrange,
-		ai.vibdepth, ai.vibspeed);
-	printf ("A wave count: %d, B wave count: %d\n", ai.wac, ai.wbc);
-#endif
-
-	for (k = 0; k < ai.wac; k++, num_wav++) {
-		fread (&ai.wal[k], 1, 6, fp);
-#if 0
-		printf ("[A %d of %d] top: %02x, wave address: %02x, "
-			"size: %02x, mode: %02x, relPitch: %04x\n",
-			k + 1, ai.wac, ai.wal[k].top, ai.wal[k].addr,
-			ai.wal[k].size, ai.wal[k].mode,
-			((int)ai.wal[k].rel_hi << 8) | ai.wal[k].rel_lo);
-#endif
-	}
-
-	for (k = 0; k < ai.wbc; k++, num_wav++) {
-		fread (&ai.wbl[k], 1, 6, fp);
-#if 0
-		printf ("[B %d of %d] top: %02x, wave address: %02x, "
-			"size: %02x, mode: %02x, relPitch: %04x\n",
-			k + 1, ai.wbc, ai.wbl[k].top, ai.wbl[k].addr,
-			ai.wbl[k].size, ai.wbl[k].mode,
-			((int)ai.wbl[k].rel_hi << 8) | ai.wbl[k].rel_lo);
-#endif
-	}
-	waveaddr[j] = 256 * ai.wal[0].addr;
-	wavesize[j] = 256 * (1 << ((ai.wal[0].size) & 0x07));
-#if 1
-	printf ("%d addr = %d\n", j, waveaddr[j]);
-	printf ("   size = %d\n",    wavesize[j]);
-#endif
-}
-
-	num_instruments = j;
-	printf ("%d Ensoniq 5503 instruments loaded. (%d waveforms)\n",
-		num_instruments, num_wav);
-
-	fclose(fp);
-
-	return err_OK;
-}
-
-
-void unload_instruments ()
-{
-	free (instruments);
-}
-#endif
-
-#endif /* USE_IIGS_SOUND */
-
-#endif /* USE_PCM_SOUND */
 

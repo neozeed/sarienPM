@@ -63,7 +63,7 @@ OBJ = agi.obj agi_v2.obj agi_v3.obj agi_v4.obj checks.obj cli.obj console.obj cy
  font.obj getopt.obj getopt1.obj global.obj graphics.obj hirespic.obj id.obj inv.obj \
 keyboard.obj logic.obj lzw.obj main.obj menu.obj motion.obj objects.obj op_cmd.obj \
 op_dbg.obj op_test.obj patches.obj path.obj picture.obj picview.obj rand.obj savegame.obj \
-silent.obj sound.obj sprite.obj text.obj view.obj words.obj fileglob.obj
+silent.obj sound.obj sprite.obj text.obj view.obj words.obj fileglob.obj nothing.obj
 
 INVOLVED = fileglob.obj
 
@@ -80,13 +80,14 @@ include ..\-justcompile.mak
 #include ..\-plainassembly.mak
 
 sarien:  $(OBJ) $(NULL)
+	SET LIB=C:\cl386-research\lib2
 	$(OS2LINK) @sarien.lnk
 	mcopy -i %QEMUPATH%\dummy.vfd -D o sarien.exe ::
 	qemuos2
  
 
 clean:
-	del $(OBJ)
+	del $(OBJ) $(NULL)
 	del  sarien.exe
 	del *.asm *.a1 *.a
 

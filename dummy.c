@@ -30,15 +30,10 @@ void __init_sound ()
 static int dummy2_init_sound (SINT16 *buffer)
 {
 	report ("sound_dummy: sound output disabled\n");
-	return -1;
+	return 0;
 }
 
 static void dummy2_close_sound ()
 {
 }
-
-void nosound(){}
-void sound(){}
-
-
 

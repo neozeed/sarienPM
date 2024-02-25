@@ -65,6 +65,7 @@ extern "C"{
 
   //#define _TRACE
 
+#if 0
 /* You'll need an ANSI terminal to use these :\ */
 #ifdef _TRACE
 #  include <stdio.h>
@@ -90,16 +91,21 @@ extern "C"{
 #    undef _D
 #  endif
 #  if defined(__GNUC__) /* && !defined(MACOSX) */
-#    define _D(args...)
+//#    define _D(args...)
 #  else
-     void _D(char *, ...);
+//     void _D(char *, ...);
 #  endif
 #endif /* _TRACE */
 //yuck
 #  define _D_INFO
 #  define _D_CRIT
 #  define _D_WARN
+#endif
 
+#define _D_INFO
+#define _D_CRIT
+#define _D_WARN
+#define _D nothing
 
 /* Include port-specific definitions
  *
