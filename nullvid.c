@@ -15,6 +15,8 @@
 #define INCL_WINDIALOGS
 #define INCL_GPIPRIMITIVES
 #define INCL_DOSPROCESS
+#define INCL_DOSQUEUES
+#define INCL_DOSERRORS
 
 #include <os2.h>
 #include <stdio.h>
@@ -33,6 +35,7 @@ HPS hps, hpsMemory;
 HMTX hmtxLock;
 TID tidMain;
 TID tidTimer;
+TID tidBeeper;
 
 #define STACK            8192    /* Stack size for thread        */
 
@@ -103,6 +106,9 @@ static int draw_frame_skip;
 #define KEY_ENTER	0x0D
 
 
+PSZ szQueueName = "\\QUEUES\\SARIEN.QUE";
+HQUEUE hqSpecialQue = 0;
+#define QUE_CONVERT_ADDRESS 0x00000004
 //////////////////////////////////////////////////////////////
 
 #include "sarien.h"
@@ -135,6 +141,65 @@ static struct gfx_driver gfx_pcvga = {
 	pc_get_key
 };
 
+typedef struct {
+	int freq;
+	int duration;
+	}QueueBeep;
+
+
+void Beeper(){
+
+PID pidOwner=0;
+REQUESTDATA Request	= {0};
+//PSZ	DataBuffer 		= "";
+int* DataBuffer;
+BYTE	ElemPrty		= 0;
+ULONG	ulDataLen	= 0;
+int rc;
+QueueBeep mybeep;
+
+rc=DosOpenQueue(&pidOwner,&hqSpecialQue,szQueueName);
+if(rc!=NO_ERROR)	{
+		printf("Error with thread openeing Queue %s\n",szQueueName);
+		exit(-1);
+		}
+for(;;)	{
+	rc=DosReadQueue(hqSpecialQue,
+		&Request,
+		&ulDataLen,
+		(PVOID) &DataBuffer,
+		0L,
+		DCWW_WAIT,
+		&ElemPrty,
+		0L);
+	if(rc!=ERROR_QUE_EMPTY)	{
+
+	mybeep.freq=(int)DataBuffer;
+	*DataBuffer++;
+	mybeep.duration=(int)DataBuffer;	//9	100
+		DosBeep(mybeep.freq/7,mybeep.duration/100);
+		}
+//	DosSleep(32L);
+	 }
+}
+
+void SendBeep(int freq,int duration)	{
+QueueBeep mybeep;
+mybeep.freq=freq;
+mybeep.duration=duration;
+
+DosWriteQueue (hqSpecialQue,
+		12345L,
+		sizeof(freq),
+		freq,
+		0L);
+DosWriteQueue (hqSpecialQue,
+		12345L,
+		sizeof(duration),
+		duration,
+		0L);
+}
+
 void Timer(){
 for(;;)   {
 	DosSleep(20L);
@@ -148,7 +213,7 @@ static void pc_timer ()
 
 	while (cticks == clock_ticks){DosSleep(5);}
 	cticks = clock_ticks;
-	draw_frame++;
+	//draw_frame++;
 }
 
 
@@ -204,6 +269,11 @@ static void pc_put_block (int x1, int y1, int x2, int y2)
       Bitmap[((NUM_MASSES_Y-y)*(GFX_WIDTH))-(GFX_WIDTH-x)] = RGBmap[disp_val];
     }
   }
+	// skip frame happens here
+	// for some reason it constantly stalls.
+	// have to keep hitting enter :(
+	//      if(draw_frame>draw_frame_skip) {
+
   DosRequestMutexSem(hmtxLock, SEM_INDEFINITE_WAIT);
 
   /* This is the key to the speed. Instead of doing a GPI call to set the
@@ -249,6 +319,7 @@ int main(int argc, char *argv[])
   QMSG qmsg;
   ULONG flFlags;
   unsigned char class[]="MyClass";
+  int rc;
 
   flFlags = FCF_TITLEBAR |
             FCF_MINBUTTON |
@@ -292,16 +363,28 @@ int main(int argc, char *argv[])
       /* Create a semaphore to control access to the memory image
          presentation space. Only one thread can perform Gpi operations
          on it at a time. */
-      DosCreateMutexSem("\\sem32\\Lock", &hmtxLock, 0, FALSE);
+      rc=DosCreateMutexSem("\\sem32\\Lock", &hmtxLock, 0, FALSE);
+	if(rc!=NO_ERROR)	{
+	printf("DosCreateMutexSem \\sem32\\Lock returned error\n");
+	exit (-1);
+	}
+
+      DosCreateQueue(&hqSpecialQue,QUE_FIFO,szQueueName);
+	if(rc!=NO_ERROR)	{
+	printf("DosCreateQueue %s returned error\n",szQueueName);
+	exit (-1);
+	}
 
       /* Create a thread to run the system model. */
 	DosCreateThread(&tidMain,OLDmain, 0UL, 0UL, STACK);
 	DosCreateThread(&tidTimer,Timer, 0UL, 0UL, STACK);
+	DosCreateThread(&tidBeeper,Beeper, 0UL, 0UL, STACK);
 
-	draw_frame=1000;
-	draw_frame_skip=60;
+/*	draw_frame=1000;
+	draw_frame_skip=2;
 	if(argc>1)
-		draw_frame_skip=atoi(argv[1]);
+		draw_frame_skip=atoi(argv[1]);	*/
+
   while (WinGetMsg(hab, &qmsg, (HWND) NULL, 0, 0))
   {
     WinDispatchMsg(hab, &qmsg);
@@ -403,14 +486,12 @@ window_func(HWND handle, ULONG mess, MPARAM parm1, MPARAM parm2)
     case WM_ERASEBACKGROUND:
     case WM_PAINT:
       /* Copy the memory image of the screen out to the real screen. */
-      if(draw_frame>draw_frame_skip) {
+	//This gets called when you move the window, or something pops up
          DosRequestMutexSem(hmtxLock, SEM_INDEFINITE_WAIT);
          WinBeginPaint(handle, hps, NULL);
          GpiBitBlt(hps, hpsMemory, 3L, aptl, ROP_SRCCOPY, BBO_AND);
          WinEndPaint(hps);
          DosReleaseMutexSem(hmtxLock);
-	 draw_frame=1;
-         }
       break;
 
     case WM_CHAR:
@@ -501,6 +582,5 @@ PrepareGraphics(BYTE *RGBmap)
     RGBmap[x] = Bitmap[x];
   }
 }
-
 
 	

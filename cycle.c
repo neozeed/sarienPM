@@ -151,6 +151,7 @@ static void interpret_cycle ()
 void update_timer ()
 {
 	clock_count++;
+play_sound();
 	if (clock_count <= TICK_SECONDS)
 		return;
 

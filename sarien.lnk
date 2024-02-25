@@ -3,9 +3,9 @@ font.obj getopt.obj getopt1.obj global.obj graphics.obj hirespic.obj id.obj inv.
 keyboard.obj logic.obj lzw.obj main.obj menu.obj motion.obj objects.obj fileglob.obj +
 op_cmd.obj op_dbg.obj op_test.obj patches.obj path.obj picture.obj picview.obj rand.obj +
 savegame.obj silent.obj sound.obj sprite.obj text.obj view.obj words.obj +
-dummy.obj nullvid.obj
-sarien /NOE /NOI /NOD:OLDNAMES /STACK:256000
+dummy.obj nullvid.obj nothing.obj
+sarien /NOE /NOI /NOD:OLDNAMES /NOD:LIBCRT /NOD:LIBGCC /STACK:384000
 nul.map
-..\..\lib2\libc.lib +
-..\..\lib2\os2386.lib
+libc.lib +
+os2386.lib
 sarien.def;
